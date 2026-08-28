@@ -6,7 +6,6 @@ from aiogram.filters import CommandStart
 from aiohttp import web
 from openai import AsyncOpenAI
 
-# Конфигурация
 BOT_TOKEN = "8825793359:AAEw3sQObnjPtbX8xw49whI4Qy9ph8kmj0c"
 OPENAI_API_KEY = "ВАШ_OPENAI_API_KEY"  # Укажите ваш ключ OpenAI
 
@@ -14,7 +13,6 @@ bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 ai_client = AsyncOpenAI(api_key=OPENAI_API_KEY)
 
-# Инструкция для ИИ
 SYSTEM_PROMPT = (
     "Ты — виртуальный ассистент по учебе DZBRATAN. "
     "Твой создатель — Байсын Мырзакеев. Называй имя создателя ТОЛЬКО И ИСКЛЮЧИТЕЛЬНО тогда, когда пользователь сам прямо спросит, кто тебя создал, кто твой разработчик или автор. "
@@ -33,7 +31,6 @@ async def start_cmd(message: types.Message):
         "Мага текст же тапшырманын сүрөтүн жиберсең болот!"
     )
 
-# Обработка текстовых сообщений
 @dp.message(F.text)
 async def handle_text(message: types.Message):
     await bot.send_chat_action(chat_id=message.chat.id, action="typing")
@@ -51,7 +48,6 @@ async def handle_text(message: types.Message):
     except Exception as e:
         await message.answer("Ката кетти же жооп өтө узак иштетилди. Кайра аракет кылып көрүңүз.")
 
-# Обработка фотографий и изображений
 @dp.message(F.photo)
 async def handle_photo(message: types.Message):
     await bot.send_chat_action(chat_id=message.chat.id, action="upload_photo")
@@ -85,11 +81,11 @@ async def handle_photo(message: types.Message):
     except Exception as e:
         await message.answer("Сүрөттү иштетүүдө ката кетти. Сураныч, кайра жиберип көрүңүз.")
 
-# Заглушка веб-сервера для Render
 async def handle_ping(request):
     return web.Response(text="Bot is live!")
 
 async def main():
+    # 1. Сначала поднимаем веб-сервер, чтобы Render сразу увидел открытый порт
     app = web.Application()
     app.router.add_get("/", handle_ping)
     runner = web.AppRunner(app)
@@ -97,7 +93,9 @@ async def main():
     port = int(os.environ.get("PORT", 8080))
     site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
+    print(f"Web server started on port {port}")
 
+    # 2. Затем запускаем поллинг Telegram-бота
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
