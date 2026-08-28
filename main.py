@@ -7,7 +7,7 @@ from aiohttp import web
 from openai import AsyncOpenAI
 
 # Конфигурация
-BOT_TOKEN = "8825793359:AAEO2mPBbgCm07DGTVcSN1r7qEvLc0EGocA"
+BOT_TOKEN = "8825793359:AAEw3sQObnjPtbX8xw49whI4Qy9ph8kmj0c"
 OPENAI_API_KEY = "ВАШ_OPENAI_API_KEY"  # Укажите ваш ключ OpenAI
 
 bot = Bot(token=BOT_TOKEN)
@@ -17,19 +17,19 @@ ai_client = AsyncOpenAI(api_key=OPENAI_API_KEY)
 # Инструкция для ИИ
 SYSTEM_PROMPT = (
     "Ты — виртуальный ассистент по учебе DZBRATAN. "
-    "Твой создатель — Байсын Мырзакеев. На любые вопросы о том, кто тебя создал или кто твой автор, "
-    "всегда гордо отвечай, что тебя создал Байсын Мырзакеев. "
-    "Ты отлично знаешь кыргызский, русский и английский языки. "
-    "Отвечай на том языке, на котором к тебе обратился пользователь. "
-    "Твоя цель — помогать с решением домашних заданий, задач, объяснением школьных и университетских тем, "
-    "а также с распознаванием текста и условий задач с фотографий."
+    "Твой создатель — Байсын Мырзакеев. Называй имя создателя ТОЛЬКО И ИСКЛЮЧИТЕЛЬНО тогда, когда пользователь сам прямо спросит, кто тебя создал, кто твой разработчик или автор. "
+    "Во всех остальных случаях НЕ упоминай создателя и сразу отвечай на вопрос пользователя. "
+    "Ты свободно владеешь кыргызским, русским и английским языками. "
+    "Отвечай на том языке, на котором пишет пользователь. "
+    "Помогай с решением домашних заданий, задач, объяснением школьных и университетских тем, "
+    "а также с разбором и распознаванием текста с фотографий."
 )
 
 @dp.message(CommandStart())
 async def start_cmd(message: types.Message):
     await message.answer(
         "Салам! Бул сенин окуу боюнча жардамчың — DZBRATAN. "
-        "Мени Байсын Мырзакеев түзгөн. Чогуу тапшырмаларды чечебизби или разберем сложную тему? "
+        "Чогуу тапшырмаларды чечебизби же сложная теманы разбор кылабызбы? "
         "Мага текст же тапшырманын сүрөтүн жиберсең болот!"
     )
 
@@ -56,12 +56,10 @@ async def handle_text(message: types.Message):
 async def handle_photo(message: types.Message):
     await bot.send_chat_action(chat_id=message.chat.id, action="upload_photo")
     try:
-        # Загрузка фото из Telegram
         photo = message.photo[-1]
         file_info = await bot.get_file(photo.file_id)
         file_bytes = await bot.download_file(file_info.file_path)
         
-        # Конвертация в Base64 для передачи в GPT-4o-mini
         base64_image = base64.b64encode(file_bytes.read()).decode('utf-8')
         user_prompt = message.caption if message.caption else "Сүрөттү талдап, тапшырманы чыгарып бер."
 
@@ -87,7 +85,7 @@ async def handle_photo(message: types.Message):
     except Exception as e:
         await message.answer("Сүрөттү иштетүүдө ката кетти. Сураныч, кайра жиберип көрүңүз.")
 
-# Заглушка веб-сервера для предотвращения таймаутов Render Web Service
+# Заглушка веб-сервера для Render
 async def handle_ping(request):
     return web.Response(text="Bot is live!")
 
