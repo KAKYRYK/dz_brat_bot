@@ -1,6 +1,5 @@
 import asyncio
 import os
-import base64
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import CommandStart
 from aiohttp import web
@@ -8,7 +7,7 @@ from google import genai
 from google.genai import types as genai_types
 
 BOT_TOKEN = "8825793359:AAEw3sQObnjPtbX8xw49whI4Qy9ph8kmj0c"
-GEMINI_API_KEY = "ВАШ_GEMINI_API_KEY"  # Вставьте сюда ваш бесплатный ключ от Google AI Studio
+GEMINI_API_KEY = "AQ.Ab8RN6IwHVjTMj6BsjHhmgSeijgErGC43X3vWvEtXMgyXZKdXg"
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
@@ -38,10 +37,9 @@ async def start_cmd(message: types.Message):
 async def handle_text(message: types.Message):
     await bot.send_chat_action(chat_id=message.chat.id, action="typing")
     try:
-        # Используем современную модель gemini-2.5-flash
         response = await asyncio.to_thread(
             client.models.generate_content,
-            model='gemini-2.5-flash',
+            model='gemini-1.5-flash',
             contents=message.text,
             config=genai_types.GenerateContentConfig(
                 system_instruction=SYSTEM_PROMPT,
@@ -50,7 +48,8 @@ async def handle_text(message: types.Message):
         )
         await message.answer(response.text)
     except Exception as e:
-        await message.answer("Ката кетти. Сураныч, кайра аракет кылып көрүңүз.")
+        # Выводим точный текст ошибки прямо в чат для отладки
+        await message.answer(f"Техническая ошибка: {e}")
 
 @dp.message(F.photo)
 async def handle_photo(message: types.Message):
@@ -63,10 +62,9 @@ async def handle_photo(message: types.Message):
         image_bytes = file_bytes.read()
         user_prompt = message.caption if message.caption else "Сүрөттү талдап, тапшырманы чыгарып бер."
 
-        # Передаем картинку и промпт в Gemini
         response = await asyncio.to_thread(
             client.models.generate_content,
-            model='gemini-2.5-flash',
+            model='gemini-1.5-flash',
             contents=[
                 genai_types.Part.from_bytes(
                     data=image_bytes,
@@ -81,13 +79,12 @@ async def handle_photo(message: types.Message):
         )
         await message.answer(response.text)
     except Exception as e:
-        await message.answer("Сүрөттү иштетүүдө ката кетти. Сураныч, кайра жиберип көрүңүз.")
+        await message.answer(f"Ошибка при обработке фото: {e}")
 
 async def handle_ping(request):
     return web.Response(text="Bot is live!")
 
 async def main():
-    # Поднимаем веб-сервер для Render, чтобы порт открылся мгновенно
     app = web.Application()
     app.router.add_get("/", handle_ping)
     runner = web.AppRunner(app)
@@ -97,7 +94,6 @@ async def main():
     await site.start()
     print(f"Web server started on port {port}")
 
-    # Запускаем бота
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
