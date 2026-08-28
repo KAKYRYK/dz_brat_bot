@@ -14,8 +14,8 @@ dp = Dispatcher()
 # Инициализируем клиент Groq
 client = Groq(api_key=GROQ_API_KEY)
 
-# Используем актуальную рабочую модель Groq
-MODEL_NAME = "llama-3.1-8b-instant"
+# Используем актуальную рабочую модель
+MODEL_NAME = "openai/gpt-oss-20b"
 
 SYSTEM_PROMPT = (
     "Ты — виртуальный ассистент по учебе DZBRATAN. "
