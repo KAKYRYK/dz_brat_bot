@@ -4,14 +4,17 @@ import base64
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import CommandStart
 from aiohttp import web
-from openai import AsyncOpenAI
+from google import genai
+from google.genai import types as genai_types
 
 BOT_TOKEN = "8825793359:AAEw3sQObnjPtbX8xw49whI4Qy9ph8kmj0c"
-OPENAI_API_KEY = "ВАШ_OPENAI_API_KEY"  # Укажите ваш ключ OpenAI
+GEMINI_API_KEY = "ВАШ_GEMINI_API_KEY"  # Вставьте сюда ваш бесплатный ключ от Google AI Studio
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
-ai_client = AsyncOpenAI(api_key=OPENAI_API_KEY)
+
+# Инициализируем клиент Google GenAI
+client = genai.Client(api_key=GEMINI_API_KEY)
 
 SYSTEM_PROMPT = (
     "Ты — виртуальный ассистент по учебе DZBRATAN. "
@@ -35,18 +38,19 @@ async def start_cmd(message: types.Message):
 async def handle_text(message: types.Message):
     await bot.send_chat_action(chat_id=message.chat.id, action="typing")
     try:
-        response = await ai_client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": message.text}
-            ],
-            timeout=60.0
+        # Используем современную модель gemini-2.5-flash
+        response = await asyncio.to_thread(
+            client.models.generate_content,
+            model='gemini-2.5-flash',
+            contents=message.text,
+            config=genai_types.GenerateContentConfig(
+                system_instruction=SYSTEM_PROMPT,
+                temperature=0.3,
+            )
         )
-        answer = response.choices[0].message.content
-        await message.answer(answer)
+        await message.answer(response.text)
     except Exception as e:
-        await message.answer("Ката кетти же жооп өтө узак иштетилди. Кайра аракет кылып көрүңүз.")
+        await message.answer("Ката кетти. Сураныч, кайра аракет кылып көрүңүз.")
 
 @dp.message(F.photo)
 async def handle_photo(message: types.Message):
@@ -56,28 +60,26 @@ async def handle_photo(message: types.Message):
         file_info = await bot.get_file(photo.file_id)
         file_bytes = await bot.download_file(file_info.file_path)
         
-        base64_image = base64.b64encode(file_bytes.read()).decode('utf-8')
+        image_bytes = file_bytes.read()
         user_prompt = message.caption if message.caption else "Сүрөттү талдап, тапшырманы чыгарып бер."
 
-        response = await ai_client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": user_prompt},
-                        {
-                            "type": "image_url",
-                            "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}
-                        }
-                    ]
-                }
+        # Передаем картинку и промпт в Gemini
+        response = await asyncio.to_thread(
+            client.models.generate_content,
+            model='gemini-2.5-flash',
+            contents=[
+                genai_types.Part.from_bytes(
+                    data=image_bytes,
+                    mime_type='image/jpeg',
+                ),
+                user_prompt
             ],
-            timeout=60.0
+            config=genai_types.GenerateContentConfig(
+                system_instruction=SYSTEM_PROMPT,
+                temperature=0.3,
+            )
         )
-        answer = response.choices[0].message.content
-        await message.answer(answer)
+        await message.answer(response.text)
     except Exception as e:
         await message.answer("Сүрөттү иштетүүдө ката кетти. Сураныч, кайра жиберип көрүңүз.")
 
@@ -85,7 +87,7 @@ async def handle_ping(request):
     return web.Response(text="Bot is live!")
 
 async def main():
-    # 1. Сначала поднимаем веб-сервер, чтобы Render сразу увидел открытый порт
+    # Поднимаем веб-сервер для Render, чтобы порт открылся мгновенно
     app = web.Application()
     app.router.add_get("/", handle_ping)
     runner = web.AppRunner(app)
@@ -95,7 +97,7 @@ async def main():
     await site.start()
     print(f"Web server started on port {port}")
 
-    # 2. Затем запускаем поллинг Telegram-бота
+    # Запускаем бота
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
