@@ -15,8 +15,8 @@ dp = Dispatcher()
 # Инициализируем клиент Groq
 client = Groq(api_key=GROQ_API_KEY)
 
-# Используем мощную и бесплатную мультимодальную модель Llama 3.2 Vision
-MODEL_NAME = "llama-3.2-90b-vision-preview"
+# Используем актуальную бесплатную мультимодальную модель
+MODEL_NAME = "llama-3.2-11b-vision-preview"
 
 SYSTEM_PROMPT = (
     "Ты — виртуальный ассистент по учебе DZBRATAN. "
