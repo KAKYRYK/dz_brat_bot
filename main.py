@@ -15,8 +15,8 @@ dp = Dispatcher()
 # Инициализируем клиент Groq
 client = Groq(api_key=GROQ_API_KEY)
 
-# Используем актуальную бесплатную мультимодальную модель
-MODEL_NAME = "llama-3.2-11b-vision-preview"
+# Используем самую надежную и актуальную текстовую модель Groq
+MODEL_NAME = "llama-3.3-70b-versatile"
 
 SYSTEM_PROMPT = (
     "Ты — виртуальный ассистент по учебе DZBRATAN. "
@@ -25,7 +25,7 @@ SYSTEM_PROMPT = (
     "Ты свободно владеешь кыргызским, русским и английским языками. "
     "Отвечай на том языке, на котором пишет пользователь. "
     "Помогай с решением домашних заданий, задач, объяснением школьных и университетских тем, "
-    "а также с разбором и распознаванием текста с фотографий."
+    "а также с разбором и объяснением материалов."
 )
 
 @dp.message(CommandStart())
@@ -33,7 +33,7 @@ async def start_cmd(message: types.Message):
     await message.answer(
         "Салам! Бул сенин окуу боюнча жардамчың — DZBRATAN. "
         "Чогуу тапшырмаларды чечебизби же сложная теманы разбор кылабызбы? "
-        "Мага текст же тапшырманын сүрөтүн жиберсең болот!"
+        "Мага текст же тапшырманын мазмунун жиберсең болот!"
     )
 
 @dp.message(F.text)
@@ -55,36 +55,8 @@ async def handle_text(message: types.Message):
 
 @dp.message(F.photo)
 async def handle_photo(message: types.Message):
-    await bot.send_chat_action(chat_id=message.chat.id, action="upload_photo")
-    try:
-        photo = message.photo[-1]
-        file_info = await bot.get_file(photo.file_id)
-        file_bytes = await bot.download_file(file_info.file_path)
-        
-        image_bytes = file_bytes.read()
-        base64_image = base64.b64encode(image_bytes).decode('utf-8')
-        image_url = f"data:image/jpeg;base64,{base64_image}"
-        
-        user_prompt = message.caption if message.caption else "Проанализируй эту картинку, реши задачу или объясни материал."
-
-        response = await asyncio.to_thread(
-            client.chat.completions.create,
-            model=MODEL_NAME,
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": user_prompt},
-                        {"type": "image_url", "image_url": {"url": image_url}}
-                    ]
-                }
-            ],
-            temperature=0.3,
-        )
-        await message.answer(response.choices[0].message.content)
-    except Exception as e:
-        await message.answer(f"Ошибка при обработке фото: {e}")
+    # Так как эта модель текстовая, если присылают фото, просим скопировать текст или переключимся на текстовый режим
+    await message.answer("Пожалуйста, отправь текст задачи или вопроса сообщением, так как эта модель обрабатывает текстовые запросы мгновенно и без сбоев!")
 
 async def handle_ping(request):
     return web.Response(text="Bot is live!")
