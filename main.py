@@ -1,6 +1,5 @@
 import asyncio
 import os
-import base64
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import CommandStart
 from aiohttp import web
@@ -15,8 +14,8 @@ dp = Dispatcher()
 # Инициализируем клиент Groq
 client = Groq(api_key=GROQ_API_KEY)
 
-# Используем самую надежную и актуальную текстовую модель Groq
-MODEL_NAME = "llama-3.3-70b-versatile"
+# Используем актуальную рабочую модель Groq
+MODEL_NAME = "llama-3.1-8b-instant"
 
 SYSTEM_PROMPT = (
     "Ты — виртуальный ассистент по учебе DZBRATAN. "
@@ -24,8 +23,7 @@ SYSTEM_PROMPT = (
     "Во всех остальных случаях НЕ упоминай создателя и сразу отвечай на вопрос пользователя. "
     "Ты свободно владеешь кыргызским, русским и английским языками. "
     "Отвечай на том языке, на котором пишет пользователь. "
-    "Помогай с решением домашних заданий, задач, объяснением школьных и университетских тем, "
-    "а также с разбором и объяснением материалов."
+    "Помогай с решением домашних заданий, задач, объяснением школьных и университетских тем."
 )
 
 @dp.message(CommandStart())
@@ -55,8 +53,7 @@ async def handle_text(message: types.Message):
 
 @dp.message(F.photo)
 async def handle_photo(message: types.Message):
-    # Так как эта модель текстовая, если присылают фото, просим скопировать текст или переключимся на текстовый режим
-    await message.answer("Пожалуйста, отправь текст задачи или вопроса сообщением, так как эта модель обрабатывает текстовые запросы мгновенно и без сбоев!")
+    await message.answer("Пожалуйста, отправь текст задачи или вопроса сообщением, так как эта модель мгновенно обрабатывает текстовые запросы без сбоев!")
 
 async def handle_ping(request):
     return web.Response(text="Bot is live!")
