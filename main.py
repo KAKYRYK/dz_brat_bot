@@ -4,22 +4,16 @@ import base64
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import CommandStart
 from aiohttp import web
-from openai import OpenAI
+from groq import Groq
 
-BOT_TOKEN = "8825793359:AAEw3sQObnjPtbX8xw49whI4Qy9ph8kmj0c"
-OPENROUTER_API_KEY = "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"
+BOT_TOKEN = "8825793359:AAEhdeIINNpnfNTf2wspSYyFzMrbsjxbFXk"
+GROQ_API_KEY = "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"
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
-# Подключаем клиент OpenAI, направленный на OpenRouter
-client = OpenAI(
-    base_url="https://openrouter.ai/api/v1",
-    api_key=OPENROUTER_API_KEY,
-)
-
-# Используем универсальную бесплатную мультимодальную модель
-MODEL_NAME = "google/gemini-flash-1.5"
+client = Groq(api_key=GROQ_API_KEY)
+MODEL_NAME = "llama-3.2-90b-vision-preview"
 
 SYSTEM_PROMPT = (
     "Ты — виртуальный ассистент по учебе DZBRATAN. "
