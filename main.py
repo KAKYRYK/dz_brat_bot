@@ -9,10 +9,14 @@ from google.genai import types as genai_types
 BOT_TOKEN = "8825793359:AAEw3sQObnjPtbX8xw49whI4Qy9ph8kmj0c"
 GEMINI_API_KEY = "AQ.Ab8RN6LLGGBmUGrl8oNIN4ABVa6SJAOv65xvKu4i3hFl0MF35A"
 
+# Передаем ключ через переменную окружения, чтобы библиотека его корректно подхватила
+os.environ["GEMINI_API_KEY"] = GEMINI_API_KEY
+
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
-client = genai.Client(api_key=GEMINI_API_KEY)
+# Инициализируем клиент без прямой передачи аргумента, чтобы задействовать переменную окружения
+client = genai.Client()
 MODEL_NAME = "gemini-2.5-flash"
 
 SYSTEM_PROMPT = (
