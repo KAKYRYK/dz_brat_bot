@@ -4,16 +4,14 @@ import base64
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import CommandStart
 from aiohttp import web
-from groq import Groq
+import aiohttp
 
 BOT_TOKEN = "8825793359:AAEw3sQObnjPtbX8xw49whI4Qy9ph8kmj0c"
-GROQ_API_KEY = "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"
+# Твой рабочий ключ из Google AI Studio
+GEMINI_API_KEY = "AQ.Ab8RN6LLGGBmUGrl8oNIN4ABVa6SJAOv65xvKu4i3hFl0MF35A"
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
-
-client = Groq(api_key=GROQ_API_KEY)
-MODEL_NAME = "qwen/qwen3.6-27b"
 
 SYSTEM_PROMPT = (
     "Ты — виртуальный ассистент по учебе DZBRATAN. "
@@ -37,16 +35,20 @@ async def start_cmd(message: types.Message):
 async def handle_text(message: types.Message):
     await bot.send_chat_action(chat_id=message.chat.id, action="typing")
     try:
-        response = await asyncio.to_thread(
-            client.chat.completions.create,
-            model=MODEL_NAME,
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": message.text}
-            ],
-            temperature=0.3,
-        )
-        await message.answer(response.choices[0].message.content)
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
+        payload = {
+            "contents": [
+                {"role": "user", "parts": [{"text": f"{SYSTEM_PROMPT}\n\nПользователь пишет: {message.text}"}]}
+            ]
+        }
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, json=payload) as resp:
+                result = await resp.json()
+                if "candidates" in result:
+                    answer = result["candidates"][0]["content"]["parts"][0]["text"]
+                    await message.answer(answer)
+                else:
+                    await message.answer(f"Ошибка ответа API: {result}")
     except Exception as e:
         await message.answer(f"Техническая ошибка: {e}")
 
@@ -60,26 +62,33 @@ async def handle_photo(message: types.Message):
         
         image_bytes = file_bytes.read()
         base64_image = base64.b64encode(image_bytes).decode('utf-8')
-        image_url = f"data:image/jpeg;base64,{base64_image}"
-        
         user_prompt = message.caption if message.caption else "Сүрөттү талдап, тапшырманы чыгарып бер."
 
-        response = await asyncio.to_thread(
-            client.chat.completions.create,
-            model=MODEL_NAME,
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
+        payload = {
+            "contents": [
                 {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": user_prompt},
-                        {"type": "image_url", "image_url": {"url": image_url}}
+                    "role": "user", 
+                    "parts": [
+                        {"text": f"{SYSTEM_PROMPT}\n\nЗапрос к фото: {user_prompt}"},
+                        {
+                            "inline_data": {
+                                "mime_type": "image/jpeg",
+                                "data": base64_image
+                            }
+                        }
                     ]
                 }
-            ],
-            temperature=0.3,
-        )
-        await message.answer(response.choices[0].message.content)
+            ]
+        }
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, json=payload) as resp:
+                result = await resp.json()
+                if "candidates" in result:
+                    answer = result["candidates"][0]["content"]["parts"][0]["text"]
+                    await message.answer(answer)
+                else:
+                    await message.answer(f"Ошибка обработки фото: {result}")
     except Exception as e:
         await message.answer(f"Ошибка при обработке фото: {e}")
 
