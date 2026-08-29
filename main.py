@@ -13,7 +13,8 @@ bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
 client = Groq(api_key=GROQ_API_KEY)
-MODEL_NAME = "llama-3.2-90b-vision-preview"
+# Обновили модель на актуальную с поддержкой зрения
+MODEL_NAME = "qwen/qwen3.6-27b"
 
 SYSTEM_PROMPT = (
     "Ты — виртуальный ассистент по учебе DZBRATAN. "
