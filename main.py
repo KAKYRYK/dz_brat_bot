@@ -1,23 +1,25 @@
 import asyncio
 import os
+import base64
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import CommandStart
 from aiohttp import web
-from google import genai
-from google.genai import types as genai_types
+from openai import OpenAI
 
 BOT_TOKEN = "8825793359:AAEw3sQObnjPtbX8xw49whI4Qy9ph8kmj0c"
-GEMINI_API_KEY = "AQ.Ab8RN6LLGGBmUGrl8oNIN4ABVa6SJAOv65xvKu4i3hFl0MF35A"
-
-# Передаем ключ через переменную окружения, чтобы библиотека его корректно подхватила
-os.environ["GEMINI_API_KEY"] = GEMINI_API_KEY
+OPENROUTER_API_KEY = "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"
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
-# Инициализируем клиент без прямой передачи аргумента, чтобы задействовать переменную окружения
-client = genai.Client()
-MODEL_NAME = "gemini-2.5-flash"
+# Инициализируем клиент OpenAI, но настраиваем его на сервер OpenRouter
+client = OpenAI(
+    base_url="https://openrouter.ai/api/v1",
+    api_key=OPENROUTER_API_KEY,
+)
+
+# Бесплатная мультимодальная модель OpenRouter для текста и фото
+MODEL_NAME = "meta-llama/llama-3.2-11b-vision-instruct:free"
 
 SYSTEM_PROMPT = (
     "Ты — виртуальный ассистент по учебе DZBRATAN. "
@@ -42,15 +44,15 @@ async def handle_text(message: types.Message):
     await bot.send_chat_action(chat_id=message.chat.id, action="typing")
     try:
         response = await asyncio.to_thread(
-            client.models.generate_content,
+            client.chat.completions.create,
             model=MODEL_NAME,
-            contents=message.text,
-            config=genai_types.GenerateContentConfig(
-                system_instruction=SYSTEM_PROMPT,
-                temperature=0.3,
-            )
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": message.text}
+            ],
+            temperature=0.3,
         )
-        await message.answer(response.text)
+        await message.answer(response.choices[0].message.content)
     except Exception as e:
         await message.answer(f"Техническая ошибка: {e}")
 
@@ -63,24 +65,27 @@ async def handle_photo(message: types.Message):
         file_bytes = await bot.download_file(file_info.file_path)
         
         image_bytes = file_bytes.read()
+        base64_image = base64.b64encode(image_bytes).decode('utf-8')
+        image_url = f"data:image/jpeg;base64,{base64_image}"
+        
         user_prompt = message.caption if message.caption else "Сүрөттү талдап, тапшырманы чыгарып бер."
 
         response = await asyncio.to_thread(
-            client.models.generate_content,
+            client.chat.completions.create,
             model=MODEL_NAME,
-            contents=[
-                genai_types.Part.from_bytes(
-                    data=image_bytes,
-                    mime_type='image/jpeg',
-                ),
-                user_prompt
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": user_prompt},
+                        {"type": "image_url", "image_url": {"url": image_url}}
+                    ]
+                }
             ],
-            config=genai_types.GenerateContentConfig(
-                system_instruction=SYSTEM_PROMPT,
-                temperature=0.3,
-            )
+            temperature=0.3,
         )
-        await message.answer(response.text)
+        await message.answer(response.choices[0].message.content)
     except Exception as e:
         await message.answer(f"Ошибка при обработке фото: {e}")
 
