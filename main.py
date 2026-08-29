@@ -13,7 +13,6 @@ bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
 client = Groq(api_key=GROQ_API_KEY)
-# Обновили модель на актуальную с поддержкой зрения
 MODEL_NAME = "qwen/qwen3.6-27b"
 
 SYSTEM_PROMPT = (
@@ -21,9 +20,7 @@ SYSTEM_PROMPT = (
     "Твой создатель — Байсын Мырзакеев. Называй имя создателя ТОЛЬКО И ИСКЛЮЧИТЕЛЬНО тогда, когда пользователь сам прямо спросит, кто тебя создал, кто твой разработчик или автор. "
     "Во всех остальных случаях НЕ упоминай создателя и сразу отвечай на вопрос пользователя. "
     "Ты свободно владеешь кыргызским, русским и английским языками. "
-    "Отвечай на том языке, на котором пишет пользователь. "
-    "Помогай с решением домашних заданий, задач, объяснением школьных и университетских тем, "
-    "а также с разбором и распознаванием текста с фотографий."
+    "Общайся только на том языке, на котором пишет пользователь. Отвечай строго по существу, без каких-либо внутренних мыслей, блоков рассуждений и технических записей. Сразу выдавай готовый ответ."
 )
 
 @dp.message(CommandStart())
@@ -47,7 +44,11 @@ async def handle_text(message: types.Message):
             ],
             temperature=0.3,
         )
-        await message.answer(response.choices[0].message.content)
+        answer = response.choices[0].message.content
+        # Убираем случайные блоки мысли, если модель их снова выдаст
+        if "</think>" in answer:
+            answer = answer.split("</think>")[-1].strip()
+        await message.answer(answer)
     except Exception as e:
         await message.answer(f"Техническая ошибка: {e}")
 
@@ -80,7 +81,10 @@ async def handle_photo(message: types.Message):
             ],
             temperature=0.3,
         )
-        await message.answer(response.choices[0].message.content)
+        answer = response.choices[0].message.content
+        if "</think>" in answer:
+            answer = answer.split("</think>")[-1].strip()
+        await message.answer(answer)
     except Exception as e:
         await message.answer(f"Ошибка при обработке фото: {e}")
 
